@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS Візуалізація - Лабораторна робота</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .sidebar {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .main-content {
+            background: white;
+        }
+
+        .section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.connected {
+            background: #4caf50;
+        }
+
+        .status-indicator.disconnected {
+            background: #f44336;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-item {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 600px;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .log {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+        }
+
+        .log-entry {
+            padding: 5px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-entry.error {
+            color: #f44336;
+        }
+
+        .log-entry.success {
+            color: #4caf50;
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .info-box h3 {
+            color: #1976d2;
+            margin-bottom: 8px;
+            font-size: 1em;
+        }
+
+        .info-box p {
+            color: #555;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛰️ GPS Візуалізація</h1>
+            <p>Розрахунок позиції об'єкта аналітичним та чисельним методами</p>
+        </div>
+
+        <div class="content">
+            <!-- Бічна панель -->
+            <div class="sidebar">
+                <!-- Статус підключення -->
+                <div class="section">
+                    <h2>📡 Підключення</h2>
+                    <div class="status">
+                        <div class="status-indicator disconnected" id="statusIndicator"></div>
+                        <span id="statusText">Не підключено</span>
+                    </div>
+                    <button id="connectBtn" onclick="toggleConnection()">Підключитися</button>
+                </div>
+
+                <!-- Параметри емулятора -->
+                <div class="section">
+                    <h2>⚙️ Параметри емулятора</h2>
+                    <div class="form-group">
+                        <label>Розмір зони (км)</label>
+                        <input type="number" id="zoneSize" value="200" min="50" max="500">
+                    </div>
+                    <div class="form-group">
+                        <label>Частота повідомлень (Hz)</label>
+                        <input type="number" id="messageFreq" value="1" min="0.1" max="10" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label>Швидкість супутників (км/год)</label>
+                        <input type="number" id="satelliteSpeed" value="100" min="10" max="500">
+                    </div>
+                    <div class="form-group">
+                        <label>Швидкість об'єкта (км/год)</label>
+                        <input type="number" id="objectSpeed" value="10" min="1" max="100">
+                    </div>
+                    <button onclick="updateConfig()">Оновити параметри</button>
+                </div>
+
+                <!-- Статистика -->
+                <div class="section">
+                    <h2>📊 Статистика</h2>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <div class="stat-label">Супутники</div>
+                            <div class="stat-value" id="satelliteCount">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Повідомлення</div>
+                            <div class="stat-value" id="messageCount">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-item" style="margin-top: 10px;">
+                        <div class="stat-label">Похибка методів (м)</div>
+                        <div class="stat-value" id="errorValue">-</div>
+                    </div>
+                </div>
+
+                <!-- Інформація -->
+                <div class="info-box">
+                    <h3>ℹ️ Про методи</h3>
+                    <p><strong>Аналітичний:</strong> Пряме розв'язання системи рівнянь</p>
+                    <p><strong>Чисельний:</strong> Мінімізація похибки через оптимізацію</p>
+                </div>
+            </div>
+
+            <!-- Основний контент -->
+            <div class="main-content">
+                <!-- Графік -->
+                <div class="chart-container">
+                    <canvas id="gpsChart"></canvas>
+                </div>
+
+                <!-- Легенда -->
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #2196f3;"></div>
+                        <span>Супутники</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #4caf50;"></div>
+                        <span>Позиція (аналітичний метод)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ff9800;"></div>
+                        <span>Позиція (чисельний метод)</span>
+                    </div>
+                </div>
+
+                <!-- Лог -->
+                <div class="section" style="margin-top: 20px;">
+                    <h2>📝 Лог подій</h2>
+                    <div class="log" id="logContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Глобальні змінні
+        let ws = null;
+        let chart = null;
+        let satellites = new Map();
+        let messageCount = 0;
+        let lastAnalyticalPosition = null;
+        let lastNumericalPosition = null;
+
+        // Константи
+        const SPEED_OF_LIGHT = 299792.458; // км/с
+
+        // Ініціалізація графіка
+        function initChart() {
+            const ctx = document.getElementById('gpsChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        {
+                            label: 'Супутники',
+                            data: [],
+                            backgroundColor: '#2196f3',
+                            borderColor: '#2196f3',
+                            pointRadius: 8,
+                            pointHoverRadius: 10
+                        },
+                        {
+                            label: 'Позиція (аналітичний)',
+                            data: [],
+                            backgroundColor: '#4caf50',
+                            borderColor: '#4caf50',
+                            pointRadius: 12,
+                            pointHoverRadius: 14,
+                            pointStyle: 'triangle'
+                        },
+                        {
+                            label: 'Позиція (чисельний)',
+                            data: [],
+                            backgroundColor: '#ff9800',
+                            borderColor: '#ff9800',
+                            pointRadius: 12,
+                            pointHoverRadius: 14,
+                            pointStyle: 'rect'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'X (км)',
+                                font: { size: 14, weight: 'bold' }
+                            },
+                            grid: { color: '#e0e0e0' }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Y (км)',
+                                font: { size: 14, weight: 'bold' }
+                            },
+                            grid: { color: '#e0e0e0' }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `(${context.parsed.x.toFixed(2)}, ${context.parsed.y.toFixed(2)}) км`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Підключення/відключення від WebSocket
+        function toggleConnection() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.close();
+            } else {
+                connectWebSocket();
+            }
+        }
+
+        function connectWebSocket() {
+            const url = 'ws://localhost:4001';
+            log(`Підключення до ${url}...`);
+            
+            ws = new WebSocket(url);
+            
+            ws.onopen = () => {
+                log('✅ Підключено до GPS емулятора', 'success');
+                updateConnectionStatus(true);
+            };
+            
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleGPSData(data);
+                } catch (error) {
+                    log(`❌ Помилка обробки даних: ${error.message}`, 'error');
+                }
+            };
+            
+            ws.onerror = (error) => {
+                log('❌ Помилка WebSocket', 'error');
+            };
+            
+            ws.onclose = () => {
+                log('Відключено від емулятора');
+                updateConnectionStatus(false);
+            };
+        }
+
+        // Обробка GPS даних
+        function handleGPSData(data) {
+            messageCount++;
+            document.getElementById('messageCount').textContent = messageCount;
+
+            // Зберігаємо дані супутника
+            satellites.set(data.id, {
+                x: data.x,
+                y: data.y,
+                distance: calculateDistance(data.sentAt, data.receivedAt)
+            });
+
+            document.getElementById('satelliteCount').textContent = satellites.size;
+
+            // Чекаємо мінімум 3 супутники для трилатерації
+            if (satellites.size >= 3) {
+                const satelliteArray = Array.from(satellites.values());
+                
+                // Розрахунок аналітичним методом
+                lastAnalyticalPosition = calculateAnalytical(satelliteArray);
+                
+                // Розрахунок чисельним методом
+                lastNumericalPosition = calculateNumerical(satelliteArray);
+                
+                // Обчислення похибки між методами
+                if (lastAnalyticalPosition && lastNumericalPosition) {
+                    const error = Math.sqrt(
+                        Math.pow(lastAnalyticalPosition.x - lastNumericalPosition.x, 2) +
+                        Math.pow(lastAnalyticalPosition.y - lastNumericalPosition.y, 2)
+                    ) * 1000; // переводимо в метри
+                    document.getElementById('errorValue').textContent = error.toFixed(2);
+                }
+                
+                updateChart();
+            }
+        }
+
+        // Розрахунок відстані за часом
+        function calculateDistance(sentAt, receivedAt) {
+            const timeDiff = (receivedAt - sentAt) / 1000; // переводимо в секунди
+            return SPEED_OF_LIGHT * timeDiff;
+        }
+
+        // АНАЛІТИЧНИЙ МЕТОД
+        // Розв'язуємо систему рівнянь трилатерації методом виключення
+        function calculateAnalytical(satellites) {
+            if (satellites.length < 3) return null;
+
+            // Беремо перші 3 супутники
+            const [s1, s2, s3] = satellites.slice(0, 3);
+
+            // Система рівнянь для трилатерації:
+            // (x - x1)² + (y - y1)² = d1²
+            // (x - x2)² + (y - y2)² = d2²
+            // (x - x3)² + (y - y3)² = d3²
+
+            // Розкриваємо і віднімаємо рівняння попарно для лінеаризації
+            const A = 2 * (s2.x - s1.x);
+            const B = 2 * (s2.y - s1.y);
+            const C = s1.distance * s1.distance - s2.distance * s2.distance - 
+                      s1.x * s1.x + s2.x * s2.x - s1.y * s1.y + s2.y * s2.y;
+
+            const D = 2 * (s3.x - s2.x);
+            const E = 2 * (s3.y - s2.y);
+            const F = s2.distance * s2.distance - s3.distance * s3.distance - 
+                      s2.x * s2.x + s3.x * s3.x - s2.y * s2.y + s3.y * s3.y;
+
+            // Розв'язуємо лінійну систему 2x2:
+            // Ax + By = C
+            // Dx + Ey = F
+            const denominator = A * E - B * D;
+            
+            if (Math.abs(denominator) < 0.0001) {
+                log('⚠️ Аналітичний метод: супутники на одній лінії', 'error');
+                return null;
+            }
+
+            const x = (C * E - F * B) / denominator;
+            const y = (A * F - D * C) / denominator;
+
+            return { x, y };
+        }
+
+        // ЧИСЕЛЬНИЙ МЕТОД
+        // Використовуємо бібліотеку numeric.js для мінімізації функції похибки
+        function calculateNumerical(satellites) {
+            if (satellites.length < 3) return null;
+
+            // Функція похибки - сума квадратів різниць між виміряними та розрахованими відстанями
+            function errorFunction(pos) {
+                let sumError = 0;
+                for (let sat of satellites) {
+                    const calculatedDistance = Math.sqrt(
+                        Math.pow(pos[0] - sat.x, 2) + 
+                        Math.pow(pos[1] - sat.y, 2)
+                    );
+                    const diff = calculatedDistance - sat.distance;
+                    sumError += diff * diff;
+                }
+                return sumError;
+            }
+
+            // Початкове наближення - центр мас супутників
+            let initialGuess = [0, 0];
+            for (let sat of satellites) {
+                initialGuess[0] += sat.x;
+                initialGuess[1] += sat.y;
+            }
+            initialGuess[0] /= satellites.length;
+            initialGuess[1] /= satellites.length;
+
+            try {
+                // Використовуємо метод безумовної мінімізації з numeric.js
+                const result = numeric.uncmin(errorFunction, initialGuess);
+                
+                if (result.solution) {
+                    return {
+                        x: result.solution[0],
+                        y: result.solution[1]
+                    };
+                }
+            } catch (error) {
+                log(`❌ Помилка чисельного методу: ${error.message}`, 'error');
+            }
+
+            return null;
+        }
+
+        // Оновлення графіка
+        function updateChart() {
+            if (!chart) return;
+
+            // Оновлюємо позиції супутників (сині точки)
+            chart.data.datasets[0].data = Array.from(satellites.values()).map(s => ({
+                x: s.x,
+                y: s.y
+            }));
+
+            // Оновлюємо аналітичну позицію (зелений трикутник)
+            if (lastAnalyticalPosition) {
+                chart.data.datasets[1].data = [lastAnalyticalPosition];
+            }
+
+            // Оновлюємо чисельну позицію (помаранчевий квадрат)
+            if (lastNumericalPosition) {
+                chart.data.datasets[2].data = [lastNumericalPosition];
+            }
+
+            chart.update('none'); // Оновлюємо без анімації для швидкості
+        }
+
+        // Оновлення конфігурації емулятора через API
+        async function updateConfig() {
+            const config = {
+                emulationZoneSize: parseInt(document.getElementById('zoneSize').value),
+                messageFrequency: parseFloat(document.getElementById('messageFreq').value),
+                satelliteSpeed: parseInt(document.getElementById('satelliteSpeed').value),
+                objectSpeed: parseInt(document.getElementById('objectSpeed').value)
+            };
+
+            try {
+                const response = await fetch('http://localhost:4001/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(config)
+                });
+
+                if (response.ok) {
+                    log('✅ Параметри оновлено успішно', 'success');
+                } else {
+                    log('❌ Помилка оновлення параметрів', 'error');
+                }
+            } catch (error) {
+                log(`❌ Помилка з'єднання з API: ${error.message}`, 'error');
+            }
+        }
+
+        // Оновлення статусу підключення
+        function updateConnectionStatus(connected) {
+            const indicator = document.getElementById('statusIndicator');
+            const text = document.getElementById('statusText');
+            const btn = document.getElementById('connectBtn');
+
+            if (connected) {
+                indicator.classList.add('connected');
+                indicator.classList.remove('disconnected');
+                text.textContent = 'Підключено';
+                btn.textContent = 'Відключитися';
+            } else {
+                indicator.classList.add('disconnected');
+                indicator.classList.remove('connected');
+                text.textContent = 'Не підключено';
+                btn.textContent = 'Підключитися';
+            }
+        }
+
+        // Логування подій
+        function log(message, type = '') {
+            const logContainer = document.getElementById('logContainer');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const time = new Date().toLocaleTimeString('uk-UA');
+            entry.textContent = `[${time}] ${message}`;
+            logContainer.insertBefore(entry, logContainer.firstChild);
+            
+            // Обмежуємо кількість записів до 50
+            while (logContainer.children.length > 50) {
+                logContainer.removeChild(logContainer.lastChild);
+            }
+        }
+
+        // Ініціалізація додатку при завантаженні сторінки
+        window.onload = () => {
+            initChart();
+            log('✨ Додаток завантажено. Натисніть "Підключитися" для початку роботи');
+        };
+    </script>
+</body>
+</html>
